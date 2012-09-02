@@ -5,7 +5,6 @@ import struct
 from .compat import *
 from .util import *
 
-from collections import OrderedDict
 
 class ScriptData:
     NUMBER, BOOLEAN, STRING, OBJECT, RESERVED, NULL, \

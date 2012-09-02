@@ -1,10 +1,10 @@
 python-flv
 ==========
-This is a python library for parsing and modifying FLV files.
+This is a Python library for parsing and modifying FLV files.
 
-Main difference from the already existing flvlib is that it reads data from any python file-like object and does not require the object to support seek (e.g network streams). Tag objects can also be serialized, making it possible to create or modify FLV files.
+Main difference from the already existing flvlib is that it reads data from any file-like object and does not require the object to support seek (e.g network streams). Tag objects can also be serialized, making it possible to create or modify FLV files.
 
-Currently it has been tested to be compatible with Python 2.7 and 3.2.
+Currently it has been tested to be compatible with Python 2.6, 2.7 and 3.2.
 
 
 Example usage

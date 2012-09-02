@@ -24,4 +24,10 @@ elif is_py3:
     str = str
     from io import BytesIO
 
-__all__ = ["is_py2", "is_py3", "is_win32", "str", "bytes", "BytesIO"]
+
+try:
+    from collections import OrderedDict
+except ImportError:
+    from .ordereddict import OrderedDict
+
+__all__ = ["is_py2", "is_py3", "is_win32", "str", "bytes", "BytesIO", "OrderedDict"]
