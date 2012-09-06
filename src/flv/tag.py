@@ -134,13 +134,16 @@ class Tag(Packet):
         else:
             raise FLVError("Unknown tag type!")
 
-        io.data_left = data_size
-        data = datacls.deserialize(io=io)
+        if data_size > 0:
+            io.data_left = data_size
+            data = datacls.deserialize(io=io)
+            io.data_left = None
+        else:
+            data = EmptyData()
 
         tag = Tag(flags.bit.type, timestamp, data,
                   streamid, bool(flags.bit.filter))
 
-        io.data_left = None
         tag_size = io.read_u32()
 
         if tag.tag_size != tag_size:
@@ -189,6 +192,21 @@ class FrameData(TagData):
 
     def _serialize(self, packet):
         packet.write_u8(self.type)
+        packet.write(self.data)
+
+
+class EmptyData(TagData):
+    def __init__(self):
+        self.data = b""
+
+    def __repr__(self):
+        return "<EmptyData>"
+
+    @classmethod
+    def _deserialize(cls, io):
+        return EmptyData()
+
+    def _serialize(self, packet):
         packet.write(self.data)
 
 
