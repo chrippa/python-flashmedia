@@ -116,8 +116,15 @@ class PacketIO(object):
         ret = struct.pack(">i", num)
         return self.write(ret[1:] + byte(ret[0]))
 
+    def write_u64(self, num):
+        return self.write(struct.pack(">Q", num))
+
     def write_double(self, num):
         return self.write(struct.pack(">d", num))
+
+    def write_string(self, string):
+        string = bytes(string, "utf8")
+        return self.write(string + b"\x00")
 
     def read_u8(self):
         try:
@@ -186,6 +193,14 @@ class PacketIO(object):
 
         return ret
 
+    def read_u64(self):
+        try:
+            ret = struct.unpack(">Q", self.read(8))[0]
+        except struct.error:
+            raise IOError
+
+        return ret
+
     def read_double(self):
         try:
             ret = struct.unpack(">d", self.read(8))[0]
@@ -194,6 +209,18 @@ class PacketIO(object):
 
         return ret
 
+    def read_string(self):
+        ret = b""
+
+        while True:
+            ch = self.read(1)
+
+            if ord(ch) == 0:
+                break
+
+            ret += b""
+
+        return str(ret, "utf8")
 
     # ScriptData values
 

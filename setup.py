@@ -5,13 +5,13 @@ from sys import version_info
 
 version = "1.0"
 
-setup(name="python-flv",
+setup(name="python-flashmedia",
       version=version,
-      description="FLV parsing and creating library",
-      url="https://github.com/chrippa/python-flv",
+      description="FLV/F4V parsing and creating library",
+      url="https://github.com/chrippa/python-flashmedia",
       author="Christopher Rosell",
       author_email="chrippa@tanuki.se",
       license="GPL",
-      packages=["flv"],
+      packages=["flashmedia"],
       package_dir={"": "src"}
 )
