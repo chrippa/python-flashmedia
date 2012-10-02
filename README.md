@@ -1,33 +1,35 @@
-python-flv
+python-flashmedia
 ==========
-This is a Python library for parsing and modifying FLV files.
-
-Main difference from the already existing flvlib is that it reads data from any file-like object and does not require the object to support seek (e.g network streams). Tag objects can also be serialized, making it possible to create or modify FLV files.
-
-Currently it has been tested to be compatible with Python 2.6, 2.7 and 3.2.
+This is a Python library for parsing and modifying various formats related to Adobe Flash.
+A main goal of the project is to be lossless, so that it is possible to deserialize the data and the serialize it back again without losing any data.
+Currently it aims to be compatible with Python 2.6, 2.7 and 3.2+.
 
 
 Example usage
 -------------
 
 ```python
-# Open the FLV, pass any readable file-like object
+
+from flashmedia import FLV, FLVError
+from flashmedia.tag import ScriptData
+
+# Open a FLV, pass any readable file-like object
 try:
-    flvobj = flv.FLV(fd)
-except flv.FLVError as err:
+    flv = FLV(fd)
+except FLVError as err:
     print("Invalid FLV")
     sys.exit()
 
 # Iterate over tags
-for tag in flvobj:
+for tag in flv:
     # tag.data contains the parsed data, it's either a AudioData, VideoData or ScriptData object
     print("Tag with timestamp %d contains %s" % (tag.timestamp, repr(tag.data)))
 
     # Modify the metadata
-    if isinstance(tag.data, flv.tag.ScriptData) and tag.data.name == "onMetaData":
+    if isinstance(tag.data, ScriptData) and tag.data.name == "onMetaData":
         tag.data.value["description"] = "This file has been modified through python!"
 
-    # Serialize the tag back into a bytestream
+    # Serialize the tag back into bytes
     data = tag.serialize()
 
 ```
