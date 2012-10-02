@@ -6,4 +6,7 @@ class FLVError(Exception):
 class F4VError(Exception):
     pass
 
-__all__ = ["FLVError", "F4VError"]
+class AMFError(Exception):
+    pass
+
+__all__ = ["FLVError", "F4VError", "AMFError"]
