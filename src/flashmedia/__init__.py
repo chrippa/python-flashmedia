@@ -2,3 +2,4 @@
 
 from .error import *
 from .flv import *
+from .f4v import *

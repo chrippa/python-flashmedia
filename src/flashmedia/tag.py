@@ -49,7 +49,7 @@ class VideoFlags(Union):
 
 
 class Header(Packet):
-    def __init__(self, version=0, has_audio=False, has_video=False, data_offset=0, tag0_size=0):
+    def __init__(self, version=1, has_audio=False, has_video=False, data_offset=9, tag0_size=0):
         self.version = version
         self.flags = TypeFlags()
         self.flags.bit.audio = int(has_audio)
@@ -298,7 +298,7 @@ class VideoData(TagData):
             if flags.bit.codec == 7:
                 data = AVCVideoData.deserialize(io)
             else:
-                self.data = io.read()
+                data = io.read()
 
         return cls(flags.bit.type, flags.bit.codec, data)
 

@@ -93,31 +93,48 @@ class PacketIO(object):
     # Primitives
 
     def write_u8(self, num):
-        return self.write(struct.pack("B", num))
+        return self.write(struct.pack("B", int(num)))
 
     def write_u16(self, num):
-        return self.write(struct.pack(">H", num))
+        return self.write(struct.pack(">H", int(num)))
 
     def write_s16(self, num):
-        return self.write(struct.pack(">h", num))
+        return self.write(struct.pack(">h", int(num)))
 
     def write_u24(self, num):
-        ret = struct.pack(">I", num)
+        ret = struct.pack(">I", int(num))
         return self.write(ret[1:])
 
     def write_s24(self, num):
-        ret = struct.pack(">i", num)
+        ret = struct.pack(">i", int(num))
         return self.write(ret[1:])
 
+    def write_s32(self, num):
+        return self.write(struct.pack(">i", int(num)))
+
     def write_u32(self, num):
-        return self.write(struct.pack(">I", num))
+        return self.write(struct.pack(">I", int(num)))
 
     def write_s32e(self, num):
-        ret = struct.pack(">i", num)
+        ret = struct.pack(">i", int(num))
         return self.write(ret[1:] + byte(ret[0]))
 
     def write_u64(self, num):
-        return self.write(struct.pack(">Q", num))
+        return self.write(struct.pack(">Q", int(num)))
+
+    def write_s8_8(self, num):
+        num = float(num) * float(2**8)
+        return self.write_s16(int(num))
+
+    def write_s16_16(self, num):
+        num = float(num) * float(2**16)
+        return self.write_s32(int(num))
+
+    def write_u3264(self, version, num):
+        if version == 1:
+            self.write_u64(num)
+        else:
+            self.write_u32(num)
 
     def write_double(self, num):
         return self.write(struct.pack(">d", num))
@@ -125,6 +142,14 @@ class PacketIO(object):
     def write_string(self, string):
         string = bytes(string, "utf8")
         return self.write(string + b"\x00")
+
+    def write_padded(self, value, length, padding=b" "):
+        for i in range(length):
+            try:
+                v = value[i]
+                self.write(bytes(v, "ascii"))
+            except IndexError:
+                self.write(padding)
 
     def read_u8(self):
         try:
@@ -150,6 +175,12 @@ class PacketIO(object):
 
         return ret
 
+    def read_s8_8(self):
+        return float(self.read_s16()) / float(2**8)
+
+    def read_s16_16(self):
+        return float(self.read_s32()) / float(2**16)
+
     def read_s24(self):
         try:
             high, low = struct.unpack(">Bh", self.read(3))
@@ -167,6 +198,14 @@ class PacketIO(object):
             raise IOError
 
         ret = (high << 16) + low
+
+        return ret
+
+    def read_s32(self):
+        try:
+            ret = struct.unpack(">i", self.read(4))[0]
+        except struct.error:
+            raise IOError
 
         return ret
 
@@ -193,6 +232,12 @@ class PacketIO(object):
 
         return ret
 
+    def read_u3264(self, version):
+        if version == 1:
+            return self.read_u64()
+        else:
+            return self.read_u32()
+
     def read_u64(self):
         try:
             ret = struct.unpack(">Q", self.read(8))[0]
@@ -213,14 +258,20 @@ class PacketIO(object):
         ret = b""
 
         while True:
-            ch = self.read(1)
+            try:
+                ch = self.read(1)
+            except IOError:
+                break
 
             if ord(ch) == 0:
                 break
 
-            ret += b""
+            ret += ch
 
         return str(ret, "utf8")
+
+    def read_padded(self, length):
+        return str(self.read(length), "ascii").rstrip()
 
     # ScriptData values
 
@@ -437,5 +488,6 @@ class TagData(Packet):
             return self.data.size
         else:
             return len(self.data)
+
 
 __all__ = ["Packet", "PacketIO", "TagData", "ScriptData"]

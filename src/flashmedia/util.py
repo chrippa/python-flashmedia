@@ -33,6 +33,25 @@ class flagproperty(object):
         flags = getattr(obj, self.flags)
         setattr(flags.bit, self.attr, int(val))
 
+def lang_to_iso639(lang):
+    res = [0, 0, 0]
 
-__all__ = ["byte", "isstring", "flagproperty"]
+    for i in reversed(range(3)):
+        res[i] = chr(0x60 + (lang & 0x1f))
+        lang = lang >> 5
+
+    return "".join(res)
+
+
+def iso639_to_lang(iso639):
+    res = 0
+
+    for i in range(3):
+        c = ord(iso639[i]) - 0x60
+        res = res << 5
+        res = res | c
+
+    return res
+
+__all__ = ["byte", "isstring", "flagproperty", "lang_to_iso639", "iso639_to_lang"]
 
