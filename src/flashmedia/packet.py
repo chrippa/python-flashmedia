@@ -31,23 +31,23 @@ class Packet(object):
         raise NotImplementedError
 
     @classmethod
-    def deserialize(cls, fd=None, io=None):
+    def deserialize(cls, fd=None, io=None, **kw):
         if not io:
             if not fd:
                 raise IOError("Missing fd parameter")
 
             io = PacketIO(fd)
 
-        return cls._deserialize(io)
+        return cls._deserialize(io, **kw)
 
     def _serialize(self):
         raise NotImplementedError
 
-    def serialize(self, packet=None):
+    def serialize(self, packet=None, **kw):
         if not packet:
             packet = PacketIO()
 
-        self._serialize(packet)
+        self._serialize(packet, **kw)
 
         return packet.getvalue()
 
@@ -65,22 +65,25 @@ class PacketIO(object):
             self.io = BytesIO()
 
         self.data_left = None
+        self.endian = ">"
         self._objects = []
 
     def getvalue(self):
         return self.io.getvalue()
 
-    def read(self, size=None):
+    def read(self, size=-1):
         if self.data_left is not None:
-            if size is None:
+            if size < 0:
                 size = self.data_left
 
-            if size > self.data_left:
-                raise IOError
+            size = min(self.data_left, size)
+            data =  self.fd.read(size)
+            self.data_left -= len(data)
 
-            self.data_left -= size
+        else:
+            data = self.fd.read(size)
 
-        return self.fd.read(size)
+        return data
 
     @property
     def written(self):
@@ -96,31 +99,31 @@ class PacketIO(object):
         return self.write(struct.pack("B", int(num)))
 
     def write_u16(self, num):
-        return self.write(struct.pack(">H", int(num)))
+        return self.write(struct.pack(self.endian + "H", int(num)))
 
     def write_s16(self, num):
-        return self.write(struct.pack(">h", int(num)))
+        return self.write(struct.pack(self.endian + "h", int(num)))
 
     def write_u24(self, num):
-        ret = struct.pack(">I", int(num))
+        ret = struct.pack(self.endian + "I", int(num))
         return self.write(ret[1:])
 
     def write_s24(self, num):
-        ret = struct.pack(">i", int(num))
+        ret = struct.pack(self.endian + "i", int(num))
         return self.write(ret[1:])
 
     def write_s32(self, num):
-        return self.write(struct.pack(">i", int(num)))
+        return self.write(struct.pack(self.endian + "i", int(num)))
 
     def write_u32(self, num):
-        return self.write(struct.pack(">I", int(num)))
+        return self.write(struct.pack(self.endian + "I", int(num)))
 
     def write_s32e(self, num):
-        ret = struct.pack(">i", int(num))
+        ret = struct.pack(self.endian + "i", int(num))
         return self.write(ret[1:] + byte(ret[0]))
 
     def write_u64(self, num):
-        return self.write(struct.pack(">Q", int(num)))
+        return self.write(struct.pack(self.endian + "Q", int(num)))
 
     def write_s8_8(self, num):
         num = float(num) * float(2**8)
@@ -137,7 +140,7 @@ class PacketIO(object):
             self.write_u32(num)
 
     def write_double(self, num):
-        return self.write(struct.pack(">d", num))
+        return self.write(struct.pack(self.endian + "d", num))
 
     def write_string(self, string):
         string = bytes(string, "utf8")
@@ -161,7 +164,7 @@ class PacketIO(object):
 
     def read_u16(self):
         try:
-            ret = struct.unpack(">H", self.read(2))[0]
+            ret = struct.unpack(self.endian + "H", self.read(2))[0]
         except struct.error:
             raise IOError
 
@@ -169,7 +172,7 @@ class PacketIO(object):
 
     def read_s16(self):
         try:
-            ret = struct.unpack(">h", self.read(2))[0]
+            ret = struct.unpack(self.endian + "h", self.read(2))[0]
         except struct.error:
             raise IOError
 
@@ -183,7 +186,7 @@ class PacketIO(object):
 
     def read_s24(self):
         try:
-            high, low = struct.unpack(">Bh", self.read(3))
+            high, low = struct.unpack(self.endian + "Bh", self.read(3))
         except struct.error:
             raise IOError
 
@@ -193,7 +196,7 @@ class PacketIO(object):
 
     def read_u24(self):
         try:
-            high, low = struct.unpack(">BH", self.read(3))
+            high, low = struct.unpack(self.endian + "BH", self.read(3))
         except struct.error:
             raise IOError
 
@@ -203,7 +206,7 @@ class PacketIO(object):
 
     def read_s32(self):
         try:
-            ret = struct.unpack(">i", self.read(4))[0]
+            ret = struct.unpack(self.endian + "i", self.read(4))[0]
         except struct.error:
             raise IOError
 
@@ -211,7 +214,7 @@ class PacketIO(object):
 
     def read_u32(self):
         try:
-            ret = struct.unpack(">I", self.read(4))[0]
+            ret = struct.unpack(self.endian + "I", self.read(4))[0]
         except struct.error:
             raise IOError
 
@@ -226,7 +229,7 @@ class PacketIO(object):
         combined = byte(low_high[3]) + low_high[:3]
 
         try:
-            ret = struct.unpack(">i", combined)[0]
+            ret = struct.unpack(self.endian + "i", combined)[0]
         except struct.error:
             raise IOError
 
@@ -240,7 +243,7 @@ class PacketIO(object):
 
     def read_u64(self):
         try:
-            ret = struct.unpack(">Q", self.read(8))[0]
+            ret = struct.unpack(self.endian + "Q", self.read(8))[0]
         except struct.error:
             raise IOError
 
@@ -248,7 +251,7 @@ class PacketIO(object):
 
     def read_double(self):
         try:
-            ret = struct.unpack(">d", self.read(8))[0]
+            ret = struct.unpack(self.endian + "d", self.read(8))[0]
         except struct.error:
             raise IOError
 
@@ -261,6 +264,9 @@ class PacketIO(object):
             try:
                 ch = self.read(1)
             except IOError:
+                break
+
+            if len(ch) == 0:
                 break
 
             if ord(ch) == 0:
