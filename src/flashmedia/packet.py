@@ -2,8 +2,11 @@
 
 import struct
 
+from struct import Struct
+
 from .compat import *
 from .util import *
+
 
 
 class ScriptData:
@@ -58,6 +61,28 @@ class Packet(object):
 
 
 class PacketIO(object):
+    class BigEndian:
+        U8 = Struct(">B")
+        U16 = Struct(">H")
+        S16 = Struct(">h")
+        U24 = Struct(">BH")
+        S24 = Struct(">Bh")
+        U32 = Struct(">I")
+        S32 = Struct(">i")
+        U64 = Struct(">Q")
+        Double = Struct(">d")
+
+    class LittleEndian:
+        U8 = Struct("<B")
+        U16 = Struct("<H")
+        S16 = Struct("<h")
+        U24 = Struct("<BH")
+        S24 = Struct("<Bh")
+        U32 = Struct("<I")
+        S32 = Struct("<i")
+        U64 = Struct("<Q")
+        Double = Struct("<d")
+
     def __init__(self, fd=None):
         if fd:
             self.fd = fd
@@ -65,7 +90,7 @@ class PacketIO(object):
             self.io = BytesIO()
 
         self.data_left = None
-        self.endian = ">"
+        self.struct = self.BigEndian
         self._objects = []
 
     def getvalue(self):
@@ -96,34 +121,34 @@ class PacketIO(object):
     # Primitives
 
     def write_u8(self, num):
-        return self.write(struct.pack("B", int(num)))
+        return self.write(self.struct.U8.pack(int(num)))
 
     def write_u16(self, num):
-        return self.write(struct.pack(self.endian + "H", int(num)))
+        return self.write(self.struct.U16.pack(int(num)))
 
     def write_s16(self, num):
-        return self.write(struct.pack(self.endian + "h", int(num)))
+        return self.write(self.struct.S16.pack(int(num)))
 
     def write_u24(self, num):
-        ret = struct.pack(self.endian + "I", int(num))
+        ret = self.struct.U32.pack(int(num))
         return self.write(ret[1:])
 
     def write_s24(self, num):
-        ret = struct.pack(self.endian + "i", int(num))
+        ret = self.struct.S32.pack(int(num))
         return self.write(ret[1:])
 
     def write_s32(self, num):
-        return self.write(struct.pack(self.endian + "i", int(num)))
+        return self.write(self.struct.S32.pack(int(num)))
 
     def write_u32(self, num):
-        return self.write(struct.pack(self.endian + "I", int(num)))
+        return self.write(self.struct.U32.pack(int(num)))
 
     def write_s32e(self, num):
-        ret = struct.pack(self.endian + "i", int(num))
+        ret = self.struct.S32.pack(int(num))
         return self.write(ret[1:] + byte(ret[0]))
 
     def write_u64(self, num):
-        return self.write(struct.pack(self.endian + "Q", int(num)))
+        return self.write(self.struct.U64.pack(int(num)))
 
     def write_s8_8(self, num):
         num = float(num) * float(2**8)
@@ -140,7 +165,7 @@ class PacketIO(object):
             self.write_u32(num)
 
     def write_double(self, num):
-        return self.write(struct.pack(self.endian + "d", num))
+        return self.write(self.struct.Double.pack(num))
 
     def write_string(self, string):
         string = bytes(string, "utf8")
@@ -156,7 +181,7 @@ class PacketIO(object):
 
     def read_u8(self):
         try:
-            ret = struct.unpack("B", self.read(1))[0]
+            ret = self.struct.U8.unpack(self.read(1))[0]
         except struct.error:
             raise IOError
 
@@ -164,7 +189,7 @@ class PacketIO(object):
 
     def read_u16(self):
         try:
-            ret = struct.unpack(self.endian + "H", self.read(2))[0]
+            ret = self.struct.U16.unpack(self.read(2))[0]
         except struct.error:
             raise IOError
 
@@ -172,7 +197,7 @@ class PacketIO(object):
 
     def read_s16(self):
         try:
-            ret = struct.unpack(self.endian + "h", self.read(2))[0]
+            ret = self.struct.S16.unpack(self.read(2))[0]
         except struct.error:
             raise IOError
 
@@ -186,7 +211,7 @@ class PacketIO(object):
 
     def read_s24(self):
         try:
-            high, low = struct.unpack(self.endian + "Bh", self.read(3))
+            high, low = self.struct.S24.unpack(self.read(3))
         except struct.error:
             raise IOError
 
@@ -196,7 +221,7 @@ class PacketIO(object):
 
     def read_u24(self):
         try:
-            high, low = struct.unpack(self.endian + "BH", self.read(3))
+            high, low = self.struct.U24.unpack(self.read(3))
         except struct.error:
             raise IOError
 
@@ -206,7 +231,7 @@ class PacketIO(object):
 
     def read_s32(self):
         try:
-            ret = struct.unpack(self.endian + "i", self.read(4))[0]
+            ret = self.struct.S32.unpack(self.read(4))[0]
         except struct.error:
             raise IOError
 
@@ -214,7 +239,7 @@ class PacketIO(object):
 
     def read_u32(self):
         try:
-            ret = struct.unpack(self.endian + "I", self.read(4))[0]
+            ret = self.struct.U32.unpack(self.read(4))[0]
         except struct.error:
             raise IOError
 
@@ -229,7 +254,7 @@ class PacketIO(object):
         combined = byte(low_high[3]) + low_high[:3]
 
         try:
-            ret = struct.unpack(self.endian + "i", combined)[0]
+            ret = self.struct.S32.unpack(combined)[0]
         except struct.error:
             raise IOError
 
@@ -243,7 +268,7 @@ class PacketIO(object):
 
     def read_u64(self):
         try:
-            ret = struct.unpack(self.endian + "Q", self.read(8))[0]
+            ret = self.struct.U64.unpack(self.read(8))[0]
         except struct.error:
             raise IOError
 
@@ -251,7 +276,7 @@ class PacketIO(object):
 
     def read_double(self):
         try:
-            ret = struct.unpack(self.endian + "d", self.read(8))[0]
+            ret = self.struct.Double.unpack(self.read(8))[0]
         except struct.error:
             raise IOError
 
