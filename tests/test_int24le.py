@@ -1,5 +1,5 @@
 from flashmedia.types import U24LE, S24LE
-from nose.tools import *
+from nose.tools import raises
 
 import struct
 
@@ -54,7 +54,7 @@ def test_pack_signed_underflow():
 def test_unpack_signed_min():
     assert S24LE.unpack(b"\x00\x00\x80")[0] == -8388608
 
-def test_unpack_unsigned_max():
+def test_unpack_signed_max():
     assert S24LE.unpack(b"\xff\xff\x7f")[0] == 8388607
 
 

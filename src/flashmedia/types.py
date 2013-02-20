@@ -135,13 +135,20 @@ class TwosComplement(PrimitiveType):
 
 class HighLowCombo(PrimitiveType):
     def __init__(self, format, highbits, reverse=True):
+        PrimitiveType.__init__(self, format)
+
         self.highbits = highbits
         self.lowmask = (1 << highbits) - 1
         self.reverse = reverse
-
-        PrimitiveType.__init__(self, format)
+        self.lower = 0
+        self.upper = (1 << (self.size * 8)) - 1
 
     def pack(self, val):
+        if val < self.lower or val > self.upper:
+            msg = "{0} format requires {1} <= number <= {2}".format(self.format,
+                                                                    self.lower, self.upper)
+            raise struct_error(msg)
+
         if self.reverse:
             high = val >> self.highbits
             low = val & self.lowmask
@@ -152,6 +159,11 @@ class HighLowCombo(PrimitiveType):
         return PrimitiveType.pack(self, high, low)
 
     def pack_into(self, buf, offset, val):
+        if val < self.lower or val > self.upper:
+            msg = "{0} format requires {1} <= number <= {2}".format(self.format,
+                                                                    self.lower, self.upper)
+            raise struct_error(msg)
+
         if self.reverse:
             high = val >> self.highbits
             low = val & self.lowmask
