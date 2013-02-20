@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 from sys import version_info
 
-version = "1.0"
+version = "0.1"
 
 setup(name="python-flashmedia",
       version=version,
@@ -11,7 +11,7 @@ setup(name="python-flashmedia",
       url="https://github.com/chrippa/python-flashmedia",
       author="Christopher Rosell",
       author_email="chrippa@tanuki.se",
-      license="GPL",
+      license="Simplified BSD",
       packages=["flashmedia"],
       package_dir={"": "src"}
 )
