@@ -2,9 +2,11 @@
 
 from .compat import bytes, is_py2
 
+import struct
+
 def isstring(val):
     if is_py2:
-        return isinstance(val, str) or isinstance(val, unicode)
+        return isinstance(val, (str, unicode))
     else:
         return isinstance(val, str)
 
@@ -53,5 +55,31 @@ def iso639_to_lang(iso639):
 
     return res
 
-__all__ = ["byte", "isstring", "flagproperty", "lang_to_iso639", "iso639_to_lang"]
+
+def pack_many_into(buf, offset, types, values):
+    for packer, value in zip(types, values):
+        packer.pack_into(buf, offset, value)
+        offset += packer.size
+
+    return offset
+
+def pack_bytes_into(buf, offset, data):
+    size = len(data)
+    fmt = str(size) + "s"
+    struct.pack_into(fmt, buf, offset, data)
+
+    return offset + size
+
+def unpack_many_from(buf, offset, types):
+    rval = tuple()
+
+    for unpacker in types:
+        rval += unpacker.unpack_from(buf, offset)
+        offset += unpacker.size
+
+    return rval
+
+__all__ = ["byte", "isstring", "flagproperty", "lang_to_iso639",
+           "iso639_to_lang", "pack_many_into", "pack_bytes_into",
+           "unpack_many_from"]
 
