@@ -232,8 +232,22 @@ class Tag(Packet):
             raise FLVError("Unknown tag type!")
 
         if data_size > 0:
-            tagio = BytesIO(io.read(data_size))
+            chunks = []
+            data_left = data_size
 
+            while data_left > 0:
+                try:
+                    data = io.read(min(8192, data_left))
+                except IOError as err:
+                    raise FLVError("Failed to read data: {0}".format(str(err)))
+
+                if not data:
+                    raise FLVError("End of stream before complete payload")
+
+                data_left -= len(data)
+                chunks.append(data)
+
+            tagio = BytesIO(b"".join(chunks))
             data = datacls.deserialize(tagio)
             padding = tagio.read()
         else:
