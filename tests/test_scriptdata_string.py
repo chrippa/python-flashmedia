@@ -1,8 +1,8 @@
 # vim: set fileencoding=utf8 :
 
-from . import with_fd
-from nose.tools import *
+from __future__ import unicode_literals
 
+from . import with_fd
 from flashmedia.types import ScriptDataString
 
 ASCII = b"\x00\x03ABC"
@@ -18,7 +18,7 @@ def test_pack_ascii():
     assert ScriptDataString("ABC", "ascii") == ASCII
 
 def test_pack_utf8():
-    assert ScriptDataString(u"日本語") == UTF8
+    assert ScriptDataString("日本語") == UTF8
 
 def test_pack_into():
     size = ASCII_SIZE + UTF8_SIZE
@@ -26,7 +26,7 @@ def test_pack_into():
     offset = 0
 
     offset = ScriptDataString.pack_into(buf, offset, "ABC", "ascii")
-    offset = ScriptDataString.pack_into(buf, offset, u"日本語")
+    offset = ScriptDataString.pack_into(buf, offset, "日本語")
 
     assert buf == (ASCII + UTF8)
     assert offset == size
@@ -36,7 +36,7 @@ def test_size_ascii():
     assert ScriptDataString.size("ABC", "ascii") == ASCII_SIZE
 
 def test_size_utf8():
-    assert ScriptDataString.size(u"日本語") == UTF8_SIZE
+    assert ScriptDataString.size("日本語") == UTF8_SIZE
 
 
 @with_fd(ASCII)
@@ -46,12 +46,12 @@ def test_read_ascii(fd):
 
 @with_fd(UTF8)
 def test_read_utf8(fd):
-    assert ScriptDataString.read(fd) == u"日本語"
+    assert ScriptDataString.read(fd) == "日本語"
     assert fd.tell() == UTF8_SIZE
 
 @with_fd(BROKEN_UTF8)
 def test_read_broken_utf8(fd):
-    assert ScriptDataString.read(fd) == u"日本"
+    assert ScriptDataString.read(fd) == "日本"
     assert fd.tell() == BROKEN_UTF8_SIZE
 
 def test_unpack_from():
@@ -59,12 +59,12 @@ def test_unpack_from():
     offset = 0
 
     val, offset = ScriptDataString.unpack_from(buf, offset)
-    assert val == u"ABC"
+    assert val == "ABC"
 
     val, offset = ScriptDataString.unpack_from(buf, offset)
-    assert val == u"日本語"
+    assert val == "日本語"
 
     val, offset = ScriptDataString.unpack_from(buf, offset)
-    assert val == u"日本"
+    assert val == "日本"
 
 

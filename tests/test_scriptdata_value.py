@@ -1,12 +1,12 @@
 # vim: set fileencoding=utf8 :
 
-from . import with_fd
+from __future__ import unicode_literals
+
 from flashmedia.types import (ScriptDataDate,
                               ScriptDataReference,
                               ScriptDataECMAArray,
                               ScriptDataObject,
                               ScriptDataValue)
-from nose.tools import *
 
 BOOL = b"\x01\x01"
 BOOL_SIZE = len(BOOL)
@@ -48,7 +48,7 @@ def test_pack():
     assert ScriptDataValue([]) == STRICT_ARRAY
     assert ScriptDataValue(ScriptDataECMAArray()) == ECMA_ARRAY
     assert ScriptDataValue(ScriptDataObject()) == OBJECT
-    assert ScriptDataValue(u"ABC") == STRING
+    assert ScriptDataValue("ABC") == STRING
     assert ScriptDataValue(create_date()) == DATE
     assert ScriptDataValue(create_reference()) == REFERENCE
 
@@ -59,7 +59,7 @@ def test_unpack():
     assert ScriptDataValue.unpack(STRICT_ARRAY)[0] == []
     assert ScriptDataValue.unpack(ECMA_ARRAY)[0] == ScriptDataECMAArray()
     assert ScriptDataValue.unpack(OBJECT)[0] == ScriptDataObject()
-    assert ScriptDataValue.unpack(STRING)[0] == u"ABC"
+    assert ScriptDataValue.unpack(STRING)[0] == "ABC"
     assert ScriptDataValue.unpack(DATE)[0] == create_date()
     assert ScriptDataValue.unpack(REFERENCE)[0] == create_reference()
 
