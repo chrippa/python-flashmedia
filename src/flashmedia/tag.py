@@ -211,10 +211,11 @@ class Tag(Packet):
         return 4 + self.tag_size
 
     @classmethod
-    def _deserialize(cls, io, strict=False):
+    def _deserialize(cls, io, strict=False, raw_data=False):
         header = io.read(11)
+
         if len(header) < 11:
-            raise IOError("Not enough bytes")
+            raise FLVError("Insufficient tag header")
 
         (flagb, data_size, timestamp, timestamp_ext,
          streamid) = unpack_many_from(header, 0, (U8, U24BE, U24BE, U8, U24BE))
@@ -223,35 +224,23 @@ class Tag(Packet):
         flags.byte = flagb
         timestamp |= timestamp_ext << 24
 
+        # Don't parse encrypted data
         if flags.bit.filter == 1:
-            raise FLVError("Encrypted tags are not supported")
+            raw_data = True
 
         if flags.bit.type in TagDataTypes:
             datacls = TagDataTypes[flags.bit.type]
         else:
             raise FLVError("Unknown tag type!")
 
-        if data_size > 0:
-            chunks = []
-            data_left = data_size
+        tag_data = chunked_read(io, data_size, exception=FLVError)
 
-            while data_left > 0:
-                try:
-                    data = io.read(min(8192, data_left))
-                except IOError as err:
-                    raise FLVError("Failed to read data: {0}".format(str(err)))
-
-                if not data:
-                    raise FLVError("End of stream before complete payload")
-
-                data_left -= len(data)
-                chunks.append(data)
-
-            tagio = BytesIO(b"".join(chunks))
-            data = datacls.deserialize(tagio)
-            padding = tagio.read()
+        if data_size > 0 and not raw_data:
+            tag_data_io = BytesIO(tag_data)
+            data = datacls.deserialize(tag_data_io)
+            padding = tag_data_io.read()
         else:
-            data = RawData()
+            data = RawData(tag_data)
             padding = b""
 
         tag = Tag(flags.bit.type, timestamp, data,
@@ -265,7 +254,8 @@ class Tag(Packet):
         return tag
 
     @classmethod
-    def _deserialize_from(cls, buf, offset, strict=False):
+    def _deserialize_from(cls, buf, offset, strict=False,
+                          raw_data=False):
         (flagb, data_size, timestamp, timestamp_ext,
          streamid) = unpack_many_from(buf, offset, (U8, U24BE, U24BE, U8, U24BE))
 
@@ -275,19 +265,20 @@ class Tag(Packet):
         flags.byte = flagb
         timestamp |= timestamp_ext << 24
 
+        # Don't parse encrypted data
         if flags.bit.filter == 1:
-            raise FLVError("Encrypted tags are not supported")
+            raw_data = True
 
         if flags.bit.type in TagDataTypes:
             datacls = TagDataTypes[flags.bit.type]
         else:
             raise FLVError("Unknown tag type!")
 
-        if data_size > 0:
+        if data_size > 0 and not raw_data:
             data, doffset = datacls.deserialize_from(buf, offset, buf_size=data_size)
             padding = buf[doffset:offset + data_size]
         else:
-            data = RawData()
+            data = RawData(buf[offset:offset + data_size])
             padding = b""
 
         offset += data_size
@@ -399,11 +390,18 @@ class RawData(TagData):
 
     @classmethod
     def _deserialize(cls, io):
-        return cls()
+        return cls(io.read())
 
     @classmethod
-    def _deserialize_from(cls, buf, offset):
-        return cls()
+    def _deserialize_from(cls, buf, offset, buf_size=None):
+        if not data_size:
+            buf_size = len(buf)
+
+        data = buf[offset:offset + buf_size]
+        rval = cls(data)
+        offset += len(data)
+
+        return (rval, offset)
 
     def _serialize(self, packet):
         packet += self.data

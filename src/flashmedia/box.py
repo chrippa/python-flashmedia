@@ -39,22 +39,7 @@ class Box(Packet):
         if size == 0:
             data = io.read()
         else:
-            chunks = []
-            data_left = size - header_size
-
-            while data_left > 0:
-                try:
-                    data = io.read(min(8192, data_left))
-                except IOError as err:
-                    raise F4VError("Failed to read data: {0}".format(str(err)))
-
-                if not data:
-                    raise F4VError("End of stream before complete payload")
-
-                data_left -= len(data)
-                chunks.append(data)
-
-            data = b"".join(chunks)
+            data = chunked_read(io, size - header_size, exception=F4VError)
 
         if type_ in PayloadTypes and not raw_payload:
             payloadcls = PayloadTypes[type_]

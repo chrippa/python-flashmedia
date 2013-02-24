@@ -79,7 +79,26 @@ def unpack_many_from(buf, offset, types):
 
     return rval
 
+def chunked_read(fd, length, chunk_size=8192, exception=IOError):
+    chunks = []
+    data_left = length
+
+    while data_left > 0:
+        try:
+            data = fd.read(min(8192, data_left))
+        except IOError as err:
+            raise exception("Failed to read data: {0}".format(str(err)))
+
+        if not data:
+            raise exception("End of stream before requied data could be read")
+
+        data_left -= len(data)
+        chunks.append(data)
+
+    return b"".join(chunks)
+
+
 __all__ = ["byte", "isstring", "flagproperty", "lang_to_iso639",
            "iso639_to_lang", "pack_many_into", "pack_bytes_into",
-           "unpack_many_from"]
+           "unpack_many_from", "chunked_read"]
 
